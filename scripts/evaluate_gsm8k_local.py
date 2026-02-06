@@ -26,6 +26,9 @@ def evaluate_gsm8k_local(num_samples: int = None, **kwargs):
     if kwargs.get("local_model_path"):
         config.model.local_model_path = kwargs["local_model_path"]
     
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    config.evaluation.output_dir = f"./results/gsm8k/qwen3_0.6b_local/{timestamp}"
+    
     print("=" * 60)
     print("GSM8K Evaluation Configuration")
     print("=" * 60)
@@ -38,6 +41,7 @@ def evaluate_gsm8k_local(num_samples: int = None, **kwargs):
     print(f"Split: {config.data_source.split}")
     print(f"Number of samples: {config.evaluation.num_samples}")
     print(f"Output directory: {config.evaluation.output_dir}")
+    print(f"Timestamp: {timestamp}")
     print("=" * 60)
     
     data_loader = DataLoader(
