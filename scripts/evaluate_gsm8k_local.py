@@ -56,7 +56,8 @@ def evaluate_gsm8k_local(num_samples: int = None, **kwargs):
         model_type=config.model.model_type,
         local_model_path=config.model.local_model_path,
         temperature=config.model.temperature,
-        max_tokens=config.model.max_tokens
+        max_tokens=config.model.max_tokens,
+        enable_thinking=config.model.enable_thinking
     )
     
     answer_extractor = AnswerExtractor(extractor_type="gsm8k")

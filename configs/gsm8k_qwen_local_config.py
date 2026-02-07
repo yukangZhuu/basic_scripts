@@ -12,7 +12,7 @@ class GSM8KQwenLocalConfig(BaseConfig):
         self.model = ModelConfig(
             model_type="local",
             local_model_path="./models/qwen3-0.6b",
-            enable_thinking=False
+            enable_thinking=True
         )
         self.evaluation = EvaluationConfig(
             num_samples=10,
