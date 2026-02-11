@@ -4,3 +4,4 @@ transformers>=4.30.0
 torch>=2.0.0
 python-dotenv>=1.0.0
 accelerate>=0.20.0
+# Optional: pip install vllm — for faster local inference (USE_VLLM=1 or --use-vllm)

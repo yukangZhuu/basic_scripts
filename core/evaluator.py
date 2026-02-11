@@ -30,7 +30,9 @@ class Evaluator:
         self,
         prompt_template: str,
         system_prompt: Optional[str] = None,
-        num_samples: Optional[int] = None
+        num_samples: Optional[int] = None,
+        use_batch: bool = False,
+        batch_size: Optional[int] = None,
     ) -> Dict:
         data = self.data_loader.load()
         questions = self.data_loader.sample(data, num_samples)
@@ -47,8 +49,22 @@ class Evaluator:
                 print("Detailed output disabled (sample count > 10)")
             print(f"{'='*60}")
         
-        results = []
+        # Optional: batch generation (e.g. when using vLLM), chunked by batch_size
+        batch_outputs = None
+        if use_batch and total_samples > 0:
+            prompts = [f"{item['question']} {prompt_template}" for item in questions]
+            chunk_size = batch_size or len(prompts)
+            batch_outputs = []
+            for start in range(0, len(prompts), chunk_size):
+                chunk = prompts[start : start + chunk_size]
+                batch_outputs.extend(
+                    self.model_client.generate_batch(chunk, system_prompt)
+                )
+            if self.verbose and chunk_size < len(prompts):
+                num_chunks = (len(prompts) + chunk_size - 1) // chunk_size
+                print(f"\nBatched inference: {len(prompts)} samples in {num_chunks} chunk(s) (size={chunk_size})")
         
+        results = []
         for i, item in enumerate(questions, 1):
             if self.verbose:
                 if show_details:
@@ -59,8 +75,11 @@ class Evaluator:
                 else:
                     print(f"\rProgress: [{i}/{total_samples}] {i/total_samples:.1%}", end="", flush=True)
             
-            prompt = f"{item['question']} {prompt_template}"
-            reasoning, answer = self.model_client.generate(prompt, system_prompt)
+            if batch_outputs is not None and i <= len(batch_outputs):
+                reasoning, answer = batch_outputs[i - 1]
+            else:
+                prompt = f"{item['question']} {prompt_template}"
+                reasoning, answer = self.model_client.generate(prompt, system_prompt)
             
             if show_details:
                 print(f"\nReasoning process:")

@@ -9,9 +9,14 @@ if [ -f ".env" ]; then
 fi
 
 # Configuration, full test: 1319
-NUM_SAMPLES="${NUM_SAMPLES:-1319}"   
+NUM_SAMPLES="${NUM_SAMPLES:-1319}"
 LOCAL_MODEL_PATH="${LOCAL_MODEL_PATH:-./models/qwen3-0.6b}"
 OUTPUT_DIR="${OUTPUT_DIR:-./results/gsm8k/qwen3_0.6b_local}"
+# Optional: use vLLM for faster inference (and batched generation). Set USE_VLLM=1 to enable.
+USE_VLLM="${USE_VLLM:-1}"
+USE_VLLM_BATCH="${USE_VLLM_BATCH:-1}"
+# When USE_VLLM_BATCH=1: max samples per batch (default 64). Tune down if OOM, up for speed.
+VLLM_BATCH_SIZE="${VLLM_BATCH_SIZE:-64}"
 
 # Check if local model path is set
 if [ -z "$LOCAL_MODEL_PATH" ]; then
@@ -39,13 +44,25 @@ echo "Model: Local Qwen3-0.6B at $LOCAL_MODEL_PATH"
 echo "Dataset: GSM8K"
 echo "Number of samples: $NUM_SAMPLES"
 echo "Output directory: $OUTPUT_DIR"
+echo "Use vLLM: $USE_VLLM"
+[ "$USE_VLLM" = "1" ] && echo "Use vLLM batch: $USE_VLLM_BATCH"
+[ "$USE_VLLM" = "1" ] && [ "$USE_VLLM_BATCH" = "1" ] && echo "vLLM batch size: $VLLM_BATCH_SIZE"
 echo "=========================================="
 echo ""
+
+# Build optional vLLM args (optional: set USE_VLLM=1 for faster inference)
+VLLM_ARGS=""
+if [ "$USE_VLLM" = "1" ]; then
+    VLLM_ARGS="--use-vllm"
+    [ "$USE_VLLM_BATCH" = "0" ] && VLLM_ARGS="$VLLM_ARGS --no-vllm-batch"
+    [ -n "$VLLM_BATCH_SIZE" ] && VLLM_ARGS="$VLLM_ARGS --vllm-batch-size $VLLM_BATCH_SIZE"
+fi
 
 # Run evaluation
 python scripts/evaluate_gsm8k_local.py \
     --num-samples "$NUM_SAMPLES" \
-    --local-model-path "$LOCAL_MODEL_PATH"
+    --local-model-path "$LOCAL_MODEL_PATH" \
+    $VLLM_ARGS
 
 # Check exit code
 if [ $? -eq 0 ]; then

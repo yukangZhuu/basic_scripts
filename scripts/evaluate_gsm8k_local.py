@@ -25,7 +25,13 @@ def evaluate_gsm8k_local(num_samples: int = None, **kwargs):
     
     if kwargs.get("local_model_path"):
         config.model.local_model_path = kwargs["local_model_path"]
-    
+    if "use_vllm" in kwargs:
+        config.model.use_vllm = kwargs["use_vllm"]
+    if "use_vllm_batch" in kwargs:
+        config.model.use_vllm_batch = kwargs["use_vllm_batch"]
+    if "vllm_batch_size" in kwargs:
+        config.model.vllm_batch_size = kwargs["vllm_batch_size"]
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     config.evaluation.output_dir = f"./results/gsm8k/qwen3_0.6b_local/{timestamp}"
     
@@ -34,6 +40,11 @@ def evaluate_gsm8k_local(num_samples: int = None, **kwargs):
     print("=" * 60)
     print(f"Model type: {config.model.model_type}")
     print(f"Model path: {config.model.local_model_path}")
+    print(f"Use vLLM: {config.model.use_vllm}")
+    if config.model.use_vllm:
+        print(f"Use vLLM batch: {config.model.use_vllm_batch}")
+        if config.model.use_vllm_batch:
+            print(f"vLLM batch size: {config.model.vllm_batch_size}")
     print(f"Enable thinking: {config.model.enable_thinking}")
     print(f"Temperature: {config.model.temperature}")
     print(f"Max tokens: {config.model.max_tokens}")
@@ -57,7 +68,8 @@ def evaluate_gsm8k_local(num_samples: int = None, **kwargs):
         local_model_path=config.model.local_model_path,
         temperature=config.model.temperature,
         max_tokens=config.model.max_tokens,
-        enable_thinking=config.model.enable_thinking
+        enable_thinking=config.model.enable_thinking,
+        use_vllm=config.model.use_vllm,
     )
     
     answer_extractor = AnswerExtractor(extractor_type="gsm8k")
@@ -78,7 +90,9 @@ def evaluate_gsm8k_local(num_samples: int = None, **kwargs):
     results = evaluator.evaluate(
         prompt_template=config.get_prompt_template(),
         system_prompt=config.get_system_prompt(),
-        num_samples=config.evaluation.num_samples
+        num_samples=config.evaluation.num_samples,
+        use_batch=config.model.use_vllm and config.model.use_vllm_batch,
+        batch_size=config.model.vllm_batch_size if config.model.use_vllm_batch else None,
     )
     
     end_time = time.time()
@@ -103,6 +117,9 @@ def generate_evaluation_report(config, results, total_time):
             "model_config": {
                 "model_type": config.model.model_type,
                 "local_model_path": config.model.local_model_path,
+                "use_vllm": config.model.use_vllm,
+                "use_vllm_batch": config.model.use_vllm_batch,
+                "vllm_batch_size": config.model.vllm_batch_size,
                 "enable_thinking": config.model.enable_thinking,
                 "temperature": config.model.temperature,
                 "max_tokens": config.model.max_tokens
@@ -149,6 +166,8 @@ def print_report_summary(report):
     model_config = report["evaluation_info"]["model_config"]
     print(f"  - Model type: {model_config['model_type']}")
     print(f"  - Model path: {model_config['local_model_path']}")
+    print(f"  - Use vLLM: {model_config.get('use_vllm', False)}")
+    print(f"  - vLLM batch size: {model_config.get('vllm_batch_size', 'N/A')}")
     print(f"  - Enable thinking: {model_config['enable_thinking']}")
     print(f"  - Temperature: {model_config['temperature']}")
     print(f"  - Max tokens: {model_config['max_tokens']}")
@@ -180,10 +199,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate local Qwen3-0.6B model on GSM8K dataset")
     parser.add_argument("--num-samples", type=int, default=None, help="Number of samples to evaluate")
     parser.add_argument("--local-model-path", type=str, default=None, help="Path to local model")
+    parser.add_argument("--use-vllm", action="store_true", help="Use vLLM for faster local inference")
+    parser.add_argument("--no-vllm-batch", action="store_true", help="Disable vLLM batch generation (use when --use-vllm)")
+    parser.add_argument("--vllm-batch-size", type=int, default=None, help="Max samples per vLLM batch (default: 64; tune down if OOM)")
     
     args = parser.parse_args()
     
-    evaluate_gsm8k_local(
-        num_samples=args.num_samples,
-        local_model_path=args.local_model_path
-    )
+    kwargs = dict(num_samples=args.num_samples, local_model_path=args.local_model_path)
+    if args.use_vllm:
+        kwargs["use_vllm"] = True
+    if args.no_vllm_batch:
+        kwargs["use_vllm_batch"] = False
+    if args.vllm_batch_size is not None:
+        kwargs["vllm_batch_size"] = args.vllm_batch_size
+    
+    evaluate_gsm8k_local(**kwargs)

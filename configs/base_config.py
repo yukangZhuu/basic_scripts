@@ -21,6 +21,10 @@ class ModelConfig:
     enable_thinking: bool = False
     temperature: float = 0.7
     max_tokens: int = 2048
+    # Optional: use vLLM for local inference (faster, supports batched generation)
+    use_vllm: bool = False
+    use_vllm_batch: bool = True  # when use_vllm=True, run samples in batches
+    vllm_batch_size: int = 64  # max samples per batch (tune down if OOM, up for speed)
 
 
 @dataclass
