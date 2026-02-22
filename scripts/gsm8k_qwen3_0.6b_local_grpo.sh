@@ -10,8 +10,8 @@ fi
 
 # Configuration, full test: 1319
 NUM_SAMPLES="${NUM_SAMPLES:-1319}"
-LOCAL_MODEL_PATH="${LOCAL_MODEL_PATH:-../models/Qwen3-0.6B}"
-OUTPUT_DIR="${OUTPUT_DIR:-./results/gsm8k/qwen3_0.6b_local}"
+LOCAL_MODEL_PATH="${LOCAL_MODEL_PATH:-../models/verl_cgrpo_gsm8k_qwen3_0.6b_gsm8k/verl_cgrpo_gsm8k_qwen3_0.6b_gsm8k_2.14_2}"
+OUTPUT_DIR="${OUTPUT_DIR:-./results/gsm8k/verl_cgrpo_gsm8k_qwen3_0.6b_gsm8k/verl_cgrpo_gsm8k_qwen3_0.6b_gsm8k_2.14_2}"
 # Optional: use vLLM for faster inference (and batched generation). Set USE_VLLM=1 to enable.
 USE_VLLM="${USE_VLLM:-1}"
 USE_VLLM_BATCH="${USE_VLLM_BATCH:-1}"

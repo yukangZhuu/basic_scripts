@@ -31,9 +31,14 @@ def evaluate_gsm8k_local(num_samples: int = None, **kwargs):
         config.model.use_vllm_batch = kwargs["use_vllm_batch"]
     if "vllm_batch_size" in kwargs:
         config.model.vllm_batch_size = kwargs["vllm_batch_size"]
-
+    
+    # Set output directory: use provided output_dir, or default with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    config.evaluation.output_dir = f"./results/gsm8k/qwen3_0.6b_local/{timestamp}"
+    if kwargs.get("output_dir"):
+        # Append timestamp subdirectory to provided output_dir
+        config.evaluation.output_dir = os.path.join(kwargs["output_dir"], timestamp)
+    else:
+        config.evaluation.output_dir = f"./results/gsm8k/qwen3_0.6b_local/{timestamp}"
     
     print("=" * 60)
     print("GSM8K Evaluation Configuration")
@@ -199,6 +204,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate local Qwen3-0.6B model on GSM8K dataset")
     parser.add_argument("--num-samples", type=int, default=None, help="Number of samples to evaluate")
     parser.add_argument("--local-model-path", type=str, default=None, help="Path to local model")
+    parser.add_argument("--output-dir", type=str, default=None, help="Output directory for results")
     parser.add_argument("--use-vllm", action="store_true", help="Use vLLM for faster local inference")
     parser.add_argument("--no-vllm-batch", action="store_true", help="Disable vLLM batch generation (use when --use-vllm)")
     parser.add_argument("--vllm-batch-size", type=int, default=None, help="Max samples per vLLM batch (default: 64; tune down if OOM)")
@@ -206,6 +212,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     kwargs = dict(num_samples=args.num_samples, local_model_path=args.local_model_path)
+    if args.output_dir:
+        kwargs["output_dir"] = args.output_dir
     if args.use_vllm:
         kwargs["use_vllm"] = True
     if args.no_vllm_batch:
